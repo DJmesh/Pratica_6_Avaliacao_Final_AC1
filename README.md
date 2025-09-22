@@ -1,252 +1,393 @@
-# PRÁTICA 6: Avaliação Final de AC1
+# PRÁTICA 6 — Avaliação Final (AC1)
 
-**Integrantes**  
-- **Nome:** Eduardo Augusto Prestes Júnior — **RA:** 252148  
-- **Nome:** Eduardo Weber Maldaner — **RA:** 211948  
-- **Nome:** Lucas Siqueira Gonçalves — **RA:** 212138  
-- **Nome:** Tales Augusto Sartório Furlan — **RA:** 212170  
+**Equipe**
+- Eduardo Augusto Prestes Júnior — RA: 252148  
+- Eduardo Weber Maldaner — RA: 211948  
+- Lucas Siqueira Gonçalves — RA: 212138  
+- Tales Augusto Sartório Furlan — RA: 212170
 
 ---
 
-## Visão Geral do Repositório
+## Visão geral
 
-Este repositório consolida a prática completa de **ATDD (Acceptance Test-Driven Development)** aplicada ao estudo de caso *“Gamificação de assinatura de cursos EAD”*.  
-A solução foi construída em **Spring Boot 3 (Java 17)**, **Maven**, **JUnit 5**, **Cucumber (Gherkin)** e **JaCoCo**.
+Este repositório demonstra a evolução guiada por testes (**TDD**) e por testes de aceitação (**ATDD/BDD**) de uma suíte de assinatura educacional.  
+O domínio cobre:
 
-O repositório contém **três diretórios** que representam as fases do TDD:
+- **Matrícula em curso** consumindo **1 crédito** ou usando **voucher**.  
+- **Gamificação**: moedas → créditos (**2:1**).  
+- **Créditos por desempenho** ao concluir cursos (≥9.0 → +5; 7.0–<9.0 → +3; <7.0 → +0).  
+- **Promoção de plano** para **PREMIUM** quando **cursos concluídos > 12**.
+
+A evolução está organizada em quatro projetos-irmãos dentro do mesmo repo:
 
 ```
-subscription-suite-bdd-project-red/    # Fase RED  -> só testes (unitários/aceitação) falhando
-subscription-suite-bdd-project-GREEN/  # Fase GREEN -> implementação mínima p/ passar
-subscription-suite-bdd-project-BLUE/   # Fase BLUE -> refatoração + cobertura + relatórios (PROJETO FINAL)
+subscription-suite-bdd-project-red/    # TDD RED   — testes falhando
+subscription-suite-bdd-project-GREEN/  # TDD GREEN — implementação mínima para passar
+subscription-suite-bdd-project-BLUE/   # TDD BLUE  — refatoração + cobertura
+subscription-suite-bdd-project-ATDD/   # ATDD/BDD  — Cucumber + Gherkin
 ```
 
-> **Importante:** O **projeto completo** e pronto para avaliação é o **`subscription-suite-bdd-project-BLUE/`**.  
-> É nele que estão os relatórios do **Cucumber** e **JaCoCo**, e onde a refatoração final foi aplicada.
+> **Resumo:** BLUE é o final da Parte 1 (TDD). ATDD é a Parte 2 (Cucumber).
 
 ---
 
-## Stack e Ferramentas
+## User Stories (resumidas)
 
-- **Java:** 17  
-- **Spring Boot:** 3.3.3 (starter básico)  
-- **JUnit:** JUnit 5 (Jupiter)  
-- **Cucumber:** 7.17.0 (cucumber-java e junit-platform-engine)  
-- **Maven:** build, Surefire e perfil de relatório BDD  
-- **JaCoCo:** medição de cobertura
+1. **Matrícula usando crédito ou voucher**  
+   - Como aluno, quero me matricular **usando 1 crédito** ou **um voucher** para acessar o curso.  
+   - Critérios: sem crédito **e** sem voucher → **erro** “INSUFFICIENT_CREDIT_OR_VOUCHER”; com voucher a matrícula **não consome** crédito.
 
----
+2. **Conversão de moedas em créditos (gamificação)**  
+   - Como aluno, quero converter minhas **moedas em créditos** na proporção **2:1** para poder me matricular em cursos.
 
-## Estudo de Caso (Resumo)
+3. **Créditos por desempenho acadêmico**  
+   - Como aluno, desejo **ganhar créditos** ao finalizar um curso conforme a **média**:  
+     - **≥ 9.0** → **+5 créditos**  
+     - **≥ 7.0 e < 9.0** → **+3 créditos**  
+     - **< 7.0** → **+0 crédito**
 
-Uma plataforma de cursos **EAD por assinatura** com regras de gamificação:
+4. **Reconhecimento mensal de engajamento**  
+   - Como top contributor do mês, quero receber **+1 crédito** de recompensa.
 
-1. O aluno tem **créditos**. Para se matricular sem voucher, precisa ter **≥ 1** crédito (um crédito é consumido na matrícula).  
-2. **Voucher** permite matrícula sem consumir crédito.  
-3. Ao **concluir um curso**, o aluno ganha créditos segundo a **média** obtida:  
-   - **≥ 9.0 → +5** créditos (bônus)  
-   - **≥ 7.0 e < 9.0 → +3** créditos (aprovação)  
-4. **Moedas (coins)** podem ser **convertidas** em créditos na razão **2:1**.  
-5. **Top Contribuidor do mês** ganha **+1** crédito.  
-6. Ao ultrapassar **12 cursos concluídos** (**> 12**), o plano do aluno muda **BASIC → PREMIUM**.
+5. **Promoção de plano por progresso**  
+   - Como aluno, desejo ser promovido para **PREMIUM** quando **meus cursos concluídos forem maiores que 12**.
 
 ---
 
-## User Stories
+## Arquitetura do domínio
 
-**US-01 (Eduardo Prestes)** — *Matrícula com voucher*  
-> Eu, como aluno assinante, quero usar um **voucher** para me matricular **sem** consumir crédito, para aproveitar promoções.
+**Entidades**
 
-**US-02 (Eduardo Weber)** — *Converter moedas em créditos*  
-> Eu, como aluno engajado, quero converter **moedas** em **créditos** na proporção **2:1**, para liberar novas matrículas.
+- `Plan` — enum (`BASIC`, `PREMIUM`).  
+- `Student` — estado: `name`, `plan`, `credits`, `coins`, `completedCourses`.  
+  - operações: `addCredits`, `consumeCredit`, `addCompletedCourses`, etc.
 
-**US-03 (Tales)** — *Créditos por média*  
-> Eu, como aluno, quero receber **créditos** ao **concluir um curso** de acordo com a **média**: **5** (≥9.0) ou **3** (≥7.0 e <9.0), para continuar estudando.
+**Serviços**
 
-**US-04 (Lucas)** — *Promoção para PREMIUM*  
-> Eu, como aluno BASIC, quero que meu plano mude para **PREMIUM** quando **ultrapassar 12 cursos** concluídos, para ter benefícios avançados.
+- `EnrollmentService` — decide se aceita/rejeita matrícula:
+  - Se **voucher = true** → matrícula **aceita** sem consumir crédito.  
+  - Se **sem voucher** e **credits < 1** → **rejeita** com razão `INSUFFICIENT_CREDIT_OR_VOUCHER`.  
+  - Caso contrário, **consome 1 crédito** e **aceita**.
+- `ProgressService` — regras de progresso/gamificação:
+  - `finishCourse(student, count, average)`:
+    - Atualiza cursos concluídos (+`count`).
+    - Concede créditos: ≥9.0 → +5; 7.0–<9.0 → +3; <7.0 → +0.
+    - Promove a **PREMIUM** somente se `completedCourses > 12`.
+  - `convertCoins(student, coinsToConvert)` — taxa **2:1**.
+
+**Resultados/VO**
+
+- `EnrollmentService.Result` — `accepted`, `code` (curso), `reason` (motivo da rejeição).
 
 ---
 
-## BDD (Cucumber / Gherkin)
+## Estrutura do projeto ATDD (Cucumber)
 
-### 1) `features/enrollment.feature`
+```
+subscription-suite-bdd-project-ATDD/
+ ├─ src/main/java/br/com/valueprojects/subscription/   # domínio (Plan, Student, Services)
+ └─ src/test/
+     ├─ java/br/com/valueprojects/subscription/bdd/    # step definitions + runner
+     │   ├─ StudentSteps.java      # todos os Given
+     │   ├─ EnrollmentSteps.java   # When/Then de matrícula
+     │   ├─ ProgressSteps.java     # When de progresso (concluir curso)
+     │   ├─ Steps.java             # Then genéricos (asserts de estado)
+     │   ├─ StepContext.java       # contexto compartilhado entre steps
+     │   └─ RunCucumberTest.java   # runner JUnit Platform
+     └─ resources/features/
+         ├─ enrollment.feature
+         ├─ subscription_progress.feature
+         └─ bonus_team.feature     # cenários por integrante (bônus)
+```
+
+**Contexto de steps**: em vez de usar `static` globais, o objeto `StepContext` mantém o `Student`, os serviços e o último resultado de matrícula. Isso simplifica a troca de dados entre os passos (Given/When/Then) e evita interferências entre cenários.
+
+---
+
+## Scripts Gherkin (arquivos .feature)
+
+### `enrollment.feature` (exemplo abreviado)
 ```gherkin
-Feature: Matrícula em curso usando créditos ou voucher
+# language: pt
+Funcionalidade: Matrícula em curso usando créditos ou voucher
 
-  Scenario: Matricular consumindo 1 crédito
-    Given a BASIC student named "Ana" with 2 credits
-    When the student enrolls in course "ML-101" without voucher
-    Then the enrollment should be accepted with course code "ML-101"
-    And the student should have 1 credit
+Cenário: Matricular consumindo 1 crédito
+  Dado um aluno BASIC chamado "Ana" com 0 cursos concluídos e 2 créditos
+  Quando o aluno se matricula no curso "ML-101" sem voucher
+  Então a matrícula deve ser aceita com o código "ML-101"
+  E o aluno deve possuir 1 crédito
 
-  Scenario: Impedir matrícula sem créditos nem voucher
-    Given a BASIC student named "Bruno" with 0 credits
-    When the student tries to enroll in course "DS-201" without voucher
-    Then the enrollment should be rejected with "INSUFFICIENT_CREDIT_OR_VOUCHER"
+Cenário: Impedir matrícula sem créditos nem voucher
+  Dado um aluno BASIC chamado "Bruno" com 0 cursos concluídos e 0 créditos
+  Quando o aluno tenta se matricular no curso "DS-201" sem voucher
+  Então a matrícula deve ser rejeitada com o motivo "INSUFFICIENT_CREDIT_OR_VOUCHER"
 
-  Scenario: Voucher não consome crédito
-    Given a BASIC student named "Aluno" with 2 credits
-    When the student enrolls in course "ML-101" using voucher
-    Then the enrollment should be accepted with course code "ML-101"
-    And the student should still have 2 credits
+Cenário: Voucher não consome crédito
+  Dado um aluno BASIC chamado "Aluno" com 0 cursos concluídos e 2 créditos
+  Quando o aluno se matricula no curso "ML-101" usando voucher
+  Então a matrícula deve ser aceita com o código "ML-101"
+  E o aluno deve possuir 2 créditos
 ```
 
-### 2) `features/subscription_progress.feature`
+### `subscription_progress.feature` (exemplo abreviado)
 ```gherkin
-Feature: Progressão de assinatura por desempenho e contribuição
+# language: pt
+Funcionalidade: Progressão de assinatura por desempenho e contribuição
 
-  Scenario: Ganhar 5 créditos com média >= 9.0
-    Given a BASIC student named "Tales" with 0 credits
-    When the student finishes a course with average 9.1
-    Then the student should have 1 completed course
-    And the student should have 5 credits
+Cenário: Ganhar 5 créditos com média >= 9.0
+  Dado um aluno BASIC chamado "Tales" com 0 cursos concluídos e 0 créditos
+  Quando o aluno conclui 1 curso(s) com média 9.1
+  Então o aluno deve possuir 1 curso concluído
+  E o aluno deve possuir 5 créditos
+  E o plano deve ser BASIC
 
-  Scenario: Ganhar 3 créditos com 7.0 <= média < 9.0
-    Given a BASIC student named "Tales" with 0 credits
-    When the student finishes a course with average 7.3
-    Then the student should have 3 credits
+Cenário: Ganhar 3 créditos com 7.0 <= média < 9.0
+  Dado um aluno BASIC chamado "Tales" com 0 cursos concluídos e 0 créditos
+  Quando o aluno conclui 1 curso(s) com média 7.3
+  Então o aluno deve possuir 3 créditos
 
-  Scenario: Converter moedas em créditos (2:1)
-    Given a BASIC student named "Weber" with 4 coins and 0 credits
-    When the student converts coins to credits
-    Then the student should have 2 credits
-    And the student should have 0 coins
+Cenário: Converter moedas em créditos (2:1)
+  Dado um aluno BASIC chamado "Weber" com 0 cursos concluídos, 0 créditos e 4 moedas
+  Quando o aluno converte 4 moedas em créditos
+  Então o aluno deve possuir 2 créditos
+  E o aluno deve possuir 0 moedas
 
-  Scenario: Promoção para PREMIUM só quando > 12 cursos
-    Given a BASIC student named "Lucas" with 11 completed courses
-    When the student finishes a course with average 8.0   # passa a 12 (mantém BASIC)
-    And the student finishes a course with average 8.0     # passa a 13 (vira PREMIUM)
-    Then the student plan should be PREMIUM
+Cenário: Promoção para PREMIUM só quando > 12 cursos
+  Dado um aluno BASIC chamado "Lucas" com 12 cursos concluídos e 0 créditos
+  Quando o aluno conclui 1 curso(s) com média 8.0
+  Então o plano deve ser PREMIUM
+```
+
+### `bonus_team.feature` (exemplo abreviado)
+Cada integrante tem um cenário que valida uma regra-chave do domínio (voucher, conversão, promoção, desempenho).
+
+---
+
+## Runner JUnit 5 (Cucumber)
+
+`RunCucumberTest.java` usa a Engine do Cucumber para JUnit Platform.  
+Execute como **JUnit Test** ou via Maven (Surefire).
+
+---
+
+## POM do ATDD — dependências principais
+
+```xml
+<properties>
+  <maven.compiler.release>17</maven.compiler.release>
+  <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+  <junit.jupiter.version>5.10.2</junit.jupiter.version>
+  <junit.platform.version>1.10.2</junit.platform.version>
+  <cucumber.version>7.17.0</cucumber.version>
+</properties>
+
+<dependencies>
+  <!-- JUnit 5 -->
+  <dependency>
+    <groupId>org.junit.jupiter</groupId>
+    <artifactId>junit-jupiter</artifactId>
+    <version>${junit.jupiter.version}</version>
+    <scope>test</scope>
+  </dependency>
+
+  <!-- Cucumber -->
+  <dependency>
+    <groupId>io.cucumber</groupId>
+    <artifactId>cucumber-java</artifactId>
+    <version>${cucumber.version}</version>
+    <scope>test</scope>
+  </dependency>
+  <dependency>
+    <groupId>io.cucumber</groupId>
+    <artifactId>cucumber-junit-platform-engine</artifactId>
+    <version>${cucumber.version}</version>
+    <scope>test</scope>
+  </dependency>
+
+  <!-- AssertJ opcional -->
+  <dependency>
+    <groupId>org.assertj</groupId>
+    <artifactId>assertj-core</artifactId>
+    <version>3.26.3</version>
+    <scope>test</scope>
+  </dependency>
+</dependencies>
+```
+
+### Surefire + plugins (Cucumber e JaCoCo)
+
+```xml
+<build>
+  <plugins>
+    <plugin>
+      <groupId>org.apache.maven.plugins</groupId>
+      <artifactId>maven-surefire-plugin</artifactId>
+      <version>3.2.5</version>
+      <configuration>
+        <useSystemClassLoader>true</useSystemClassLoader>
+        <properties>
+          <configurationParameters>
+            cucumber.plugin=pretty, html:target/cucumber/cucumber.html, json:target/cucumber/cucumber.json
+            cucumber.glue=br.com.valueprojects.subscription.bdd
+            cucumber.junit-platform.naming-strategy=long
+          </configurationParameters>
+        </properties>
+      </configuration>
+    </plugin>
+
+    <plugin>
+      <groupId>org.jacoco</groupId>
+      <artifactId>jacoco-maven-plugin</artifactId>
+      <version>0.8.12</version>
+      <executions>
+        <execution>
+          <goals>
+            <goal>prepare-agent</goal>
+          </goals>
+        </execution>
+        <execution>
+          <id>report</id>
+          <phase>verify</phase>
+          <goals>
+            <goal>report</goal>
+          </goals>
+        </execution>
+      </executions>
+    </plugin>
+  </plugins>
+</build>
+```
+
+### Profile opcional para relatório “bonito” do Cucumber
+
+```xml
+<profiles>
+  <profile>
+    <id>bdd-report</id>
+    <build>
+      <plugins>
+        <plugin>
+          <groupId>net.masterthought</groupId>
+          <artifactId>maven-cucumber-reporting</artifactId>
+          <version>5.8.0</version>
+          <executions>
+            <execution>
+              <id>generate-cucumber-report</id>
+              <phase>verify</phase>
+              <goals><goal>generate</goal></goals>
+              <configuration>
+                <jsonFiles>
+                  <param>${project.build.directory}/cucumber/cucumber.json</param>
+                </jsonFiles>
+                <outputDirectory>${project.build.directory}/bdd-report</outputDirectory>
+                <projectName>subscription-suite-bdd-project-ATDD</projectName>
+                <buildNumber>${project.version}</buildNumber>
+              </configuration>
+            </execution>
+          </executions>
+        </plugin>
+      </plugins>
+    </build>
+  </profile>
+</profiles>
 ```
 
 ---
 
-## TDD e Estrutura do Código
+## Como executar
 
-### Fase RED
-- Criação dos testes de unidade/aceitação com base nas user stories/BDD.
-- Classes de teste por integrante:
-  - `EduardoPrestesTest` → *voucherShouldNotConsumeCredit*  
-  - `EduardoWeberTest` → *convertCoinsTwoForOne*
-  - `TalesTest` → *highAverageShouldGrantFiveCredits*, *averageBetweenSevenAndNineGrantsThreeCredits*
-  - `LucasTest` → *premiumOnlyAboveTwelveCourses*
-
-### Fase GREEN
-Implementação mínima para os testes passarem, com as classes de domínio/serviço:
-
-- `Student` (agregado raiz: plano, créditos, moedas e cursos)
-- `EnrollmentResult` (value object imutável, factories `accepted/rejected`)
-- `EnrollmentService` (política de matrícula, `hasAccess`, `applySideEffects`)
-- `ProgressService` (regras de créditos por média, conversão 2:1, bônus mensal, promoção)
-
-### Fase BLUE (REFATORAÇÃO — projeto final)
-- **Coesão e legibilidade:** extração de `creditsForAverage(double)` e `promoteIfEligible(Student)` em `ProgressService` e de `hasAccess(...)`/`applySideEffects(...)` em `EnrollmentService`.
-- **Complexidade ciclomática:** reduzida por **guard clauses** (early return), eliminando `if` aninhados.
-- **Imutabilidade e fábricas:** `EnrollmentResult` com construtor privado + fábricas `accepted`/`rejected`.
-- **Nulidade segura:** `Objects.requireNonNull` em `Student#setPlan` e no construtor.
-- **Nomes e constantes:** limiares e créditos como `static final`, expressando a regra de negócio.
-
-> Resultado: todos os testes passam. A cobertura JaCoCo no BLUE é ≥ **95%** de linhas (serviços **100%**), refletindo a boa testabilidade após a refatoração.
-
----
-
-## Como Rodar
-
-### Linha de comando (Maven)
+### Maven (linha de comando)
 ```bash
-# Dentro de um dos diretórios (recomendado: subscription-suite-bdd-project-BLUE)
+# dentro do projeto ATDD
 mvn clean verify
 
-# Gerar também o relatório Cucumber bonito (perfil bdd-report)
+# gerar o relatório bonito de BDD (precisa do profile no POM)
 mvn -P bdd-report clean verify
 ```
-Relatórios gerados no BLUE:
-- **Cucumber (padrão):** `target/cucumber/cucumber.html` e `target/cucumber/cucumber.json`
-- **Cucumber (bonito):** `target/cucumber-report-html/` (perfil `bdd-report`)
-- **JaCoCo:** `target/site/jacoco/index.html`
 
-### Eclipse (Existing Maven Project)
-1. *File → Import… → Existing Maven Projects* e selecione cada pasta.  
-2. *Right click → Maven → Update Project*.  
-3. Rodar: *Run As → Maven clean* e depois *Run As → Maven install*.  
-4. Abrir os relatórios nos caminhos acima (dica: *Open With → Web Browser*).
+### Eclipse/IntelliJ
+1. **Import** → *Existing Maven Project*.  
+2. **Maven → Update Project**.  
+3. Executar `RunCucumberTest` como **JUnit Test**, ou rodar `mvn clean verify`.
 
----
-
-## POM (Destaques)
-
-- **Dependências:** `spring-boot-starter`, `spring-boot-starter-test` (scope `test`), `io.cucumber:cucumber-java` e `cucumber-junit-platform-engine` (scope `test`).  
-- **Surefire:** configura `cucumber.plugin`, `glue` e `features` via `systemPropertyVariables`.  
-- **JaCoCo:** `prepare-agent` + `report` na fase `verify`.  
-- **Profile `bdd-report`:** usa `net.masterthought:maven-cucumber-reporting` para gerar o relatório HTML consolidado do Cucumber.
+### Onde abrir os relatórios
+- **Cucumber HTML**: `target/cucumber/cucumber.html`  
+- **Cucumber “bonito”**: `target/bdd-report/cucumber-html-reports/overview-features.html`  
+- **JaCoCo**: `target/site/jacoco/index.html`
 
 ---
 
-## Evidências e Relatórios
-
-- **Relatórios do Cucumber (GREEN/BLUE):** mostram **100% de cenários passados** para as features de *matrícula* e *progressão*.
-- **JaCoCo (BLUE):** cobertura alvo ≥ **95%** de linhas / **100%** dos métodos principais (serviços).
+## Dicas de escrita de BDD (sem repetição 😉)
+- Use **português** nas features quando a turma/professora exigir (`# language: pt`).  
+- Centralize todos os **Given** em uma classe (`StudentSteps`) para evitar duplicação.  
+- Deixe **asserts** genéricos (`Then`) numa classe (`Steps`) — reutilizável entre cenários.  
+- Evite **estado estático**; prefira um **contexto** injetado ou criado por cenário.  
+- Nome de cenário deve **explicar a regra** em linguagem de negócio.  
+- Se houver *Undefined*, confira **glue** (package) e **frases** (acentos/ortografia importam).  
 
 ---
 
-## Commits Sugeridos (Conventional Commits)
+## Troubleshooting rápido
 
-> Execute dentro do repositório (na raiz que contém as três pastas).
+**1) “Undefined step” amarelo no HTML**  
+- Verifique se a frase no `.feature` é exatamente igual à anotação (`@Dado`, `@Quando`, `@Entao`).  
+- Confira se o package `br.com.valueprojects.subscription.bdd` está na opção `cucumber.glue`.  
+- Salve tudo e rode `Maven → Update Project` antes de executar.
+
+**2) `DuplicateStepDefinitionException`**  
+- Ocorre quando duas classes implementam a **mesma frase**.  
+- Solução: consolidar `Given`/`Then` em classes únicas (`StudentSteps`, `Steps`), e separar os *When* por assunto.
+
+**3) `NullPointerException` no serviço**  
+- Geralmente `ctx.student` não foi criado no `Given`.  
+- Garanta um `Given` que **instancia** `Student` e inicializa os campos usados pelo cenário.
+
+**4) Relatório “bonito” não aparece**  
+- Verifique se rodou com **profile**: `mvn -P bdd-report clean verify`.  
+- Confirme o caminho do JSON em `<jsonFiles>`.
+
+---
+
+## Fluxo TDD (resumo) — RED → GREEN → BLUE
+
+1. **RED** (projeto *red*)  
+   - Escreva o teste 1º; verifique a falha e a mensagem.  
+2. **GREEN** (projeto *GREEN*)  
+   - Implemente o **mínimo** para o teste passar.  
+3. **BLUE** (projeto *BLUE*)  
+   - Refatore **nomes**, **métodos puros**, **early-returns** e corte de duplicações.  
+   - Geração de cobertura **JaCoCo** e, se desejar, relatório de BDD.
+
+> ATDD (projeto *ATDD*) conecta as regras de negócio a cenários executáveis (Cucumber).
+
+---
+
+## Comandos Git úteis (com exemplos do seu repo)
 
 ```bash
-git init
-git branch -M main
-git remote add origin <URL-DO-SEU-REPO>
+# adicionar o projeto ATDD e os READMEs
+git add subscription-suite-bdd-project-ATDD         subscription-suite-bdd-project-ATDD/README.md         subscription-suite-bdd-project-BLUE/README.md         subscription-suite-bdd-project-GREEN/README.md         subscription-suite-bdd-project-red/README.md         README.md
 
-# 1) Fase RED
-git add subscription-suite-bdd-project-red
-git commit -m "feat(red): testes de unidade e aceitação (TDD passo 1) — cenários falhando"
+# criar commit
+git commit -m "docs: README raiz consolidado + READMEs dos projetos (RED/GREEN/BLUE/ATDD) e instruções de execução/relatórios"
 
-# 2) Fase GREEN
-git add subscription-suite-bdd-project-GREEN
-git commit -m "feat(green): implementação mínima das regras (TDD passo 2) — testes passando"
-
-# 3) Fase BLUE + documentação
-git add subscription-suite-bdd-project-BLUE README.md
-git commit -m "refactor(blue): refatoração final + cobertura JaCoCo + relatórios Cucumber e README"
-
-git push -u origin main
+# criar branch opcional e enviar
+git checkout -b chore/docs-atdd-readmes
+git push -u origin chore/docs-atdd-readmes
 ```
 
 ---
 
-## Onde está cada Feature/Teste (mapeamento por integrante)
+## Rubrica de correção (sugestão para a AC1)
 
-- **Eduardo Prestes**  
-  - Teste: `EduardoPrestesTest#voucherShouldNotConsumeCredit`  
-  - Regra: *voucher não consome crédito* (`EnrollmentService#applySideEffects`)
-
-- **Eduardo Weber**  
-  - Teste: `EduardoWeberTest#convertCoinsTwoForOne`  
-  - Regra: *conversão 2:1* (`ProgressService#convertCoinsToCredits`)
-
-- **Tales**  
-  - Testes: `TalesTest#highAverageShouldGrantFiveCredits` e `#averageBetweenSevenAndNineGrantsThreeCredits`  
-  - Regra: *créditos por média* (`ProgressService#creditsForAverage` + `#finishCourse`)
-
-- **Lucas**  
-  - Teste: `LucasTest#premiumOnlyAboveTwelveCourses`  
-  - Regra: *promoção BASIC → PREMIUM somente quando > 12* (`ProgressService#promoteIfEligible`)
-
----
-
-## Conclusão — Atividade 8 (Análise da Feature)
-
-As features implementadas **respondem a regras reais de cursos EAD gamificados** porque:
-1. **Engajamento**: bonifica desempenho (média alta) e contribuição (top do mês).  
-2. **Progressão**: conversão de moedas em créditos e promoção de plano por mérito.  
-3. **Acesso**: matrícula depende de recursos (créditos) ou **voucher** (campanhas).  
-4. **Medição objetiva**: regras expressas em código e cenários Gherkin → **ATDD completo** (User Story → BDD → TDD).
-
-> **Feature que melhor representa a regra de EAD gamificada:** *Progressão por desempenho e contribuição*, implementada em `ProgressService` e exercitada pelos testes de **Tales** (créditos por média), **Weber** (conversão 2:1) e **Lucas** (promoção).
+- **Estrutura do repo** com os 4 projetos (✔).  
+- **Execução do Cucumber** com HTML gerado (✔).  
+- **Cenários passando** sem *undefined* (✔).  
+- **Perfil `bdd-report`** opcional funcionando (✔).  
+- **README** com **arquitetura, execução, troubleshooting e prints** (✔).
 
 ---
 
 ## Licença
-Uso acadêmico/educacional.
+
+Projeto acadêmico para fins de avaliação (uso livre para estudo).
