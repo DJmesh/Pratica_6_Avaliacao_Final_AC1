@@ -317,7 +317,7 @@ mvn -P bdd-report clean verify
 
 ---
 
-## Dicas de escrita de BDD (sem repetição 😉)
+## Dicas de escrita de BDD
 - Use **português** nas features quando a turma/professora exigir (`# language: pt`).  
 - Centralize todos os **Given** em uma classe (`StudentSteps`) para evitar duplicação.  
 - Deixe **asserts** genéricos (`Then`) numa classe (`Steps`) — reutilizável entre cenários.  
@@ -378,7 +378,7 @@ git push -u origin chore/docs-atdd-readmes
 
 ---
 
-## Rubrica de correção (sugestão para a AC1)
+## Rubrica de correção
 
 - **Estrutura do repo** com os 4 projetos (✔).  
 - **Execução do Cucumber** com HTML gerado (✔).  
