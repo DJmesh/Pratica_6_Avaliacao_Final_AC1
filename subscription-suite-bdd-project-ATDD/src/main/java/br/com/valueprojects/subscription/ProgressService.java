@@ -21,11 +21,8 @@ public class ProgressService {
         }
 
         // promotion rule: strictly greater than 12
-        if (student.getCompletedCourses() > 12) {
-            student.setPlan(Plan.PREMIUM);
-        } else {
-            student.setPlan(Plan.BASIC);
-        }
+        Plan determinedPlan = Plan.determinePlan(student.getCompletedCourses());
+        student.setPlan(determinedPlan);
     }
 
     /** Convert coins to credits at a 2:1 rate. */
