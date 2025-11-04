@@ -1,5 +1,11 @@
 package br.com.valueprojects.subscription;
 
+import br.com.valueprojects.subscription.entity.Student;
+
+/**
+ * Versão simplificada do EnrollmentService para testes BDD.
+ * Esta versão trabalha diretamente com a entidade Student sem depender de Spring.
+ */
 public class EnrollmentService {
 
     public static final String REJECT_REASON_INSUFFICIENT = "INSUFFICIENT_CREDIT_OR_VOUCHER";

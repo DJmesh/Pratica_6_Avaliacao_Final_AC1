@@ -3,26 +3,91 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
 
+  <parent>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-parent</artifactId>
+    <version>3.3.4</version>
+    <relativePath/>
+  </parent>
+
   <groupId>br.com.valueprojects</groupId>
   <artifactId>subscription-suite-bdd-project-ATDD</artifactId>
   <version>0.0.1-SNAPSHOT</version>
   <name>subscription-suite-bdd-project-ATDD</name>
+  <description>Subscription Service API with Clean Architecture and DDD</description>
 
   <properties>
+    <java.version>17</java.version>
     <maven.compiler.release>17</maven.compiler.release>
+    <maven.compiler.target>17</maven.compiler.target>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 
     <junit.jupiter.version>5.10.2</junit.jupiter.version>
     <junit.platform.version>1.10.2</junit.platform.version>
     <cucumber.version>7.17.0</cucumber.version>
-
     <surefire.version>3.2.5</surefire.version>
     <jacoco.version>0.8.12</jacoco.version>
     <cucumber.reporting.version>5.8.0</cucumber.reporting.version>
+    <springdoc.version>2.6.0</springdoc.version>
+    <pmd.version>3.23.0</pmd.version>
+    <lombok.version>1.18.30</lombok.version>
   </properties>
 
   <dependencies>
-    <!-- JUnit 5 -->
+    <!-- Spring Boot Starters -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-web</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-data-jpa</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-validation</artifactId>
+    </dependency>
+
+    <!-- Lombok -->
+    <dependency>
+      <groupId>org.projectlombok</groupId>
+      <artifactId>lombok</artifactId>
+      <optional>true</optional>
+    </dependency>
+
+    <!-- Database -->
+    <dependency>
+      <groupId>com.h2database</groupId>
+      <artifactId>h2</artifactId>
+      <scope>runtime</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.postgresql</groupId>
+      <artifactId>postgresql</artifactId>
+      <scope>runtime</scope>
+    </dependency>
+
+    <!-- Swagger/OpenAPI -->
+    <dependency>
+      <groupId>org.springdoc</groupId>
+      <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+      <version>${springdoc.version}</version>
+    </dependency>
+
+    <!-- DevTools -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-devtools</artifactId>
+      <scope>runtime</scope>
+      <optional>true</optional>
+    </dependency>
+
+    <!-- Testing -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-test</artifactId>
+      <scope>test</scope>
+    </dependency>
     <dependency>
       <groupId>org.junit.jupiter</groupId>
       <artifactId>junit-jupiter</artifactId>
@@ -36,16 +101,13 @@
       <scope>test</scope>
     </dependency>
 
-    <!-- Compartilhar estado entre steps (um StepContext por cenário) -->
+    <!-- Cucumber -->
     <dependency>
       <groupId>io.cucumber</groupId>
       <artifactId>cucumber-picocontainer</artifactId>
       <version>${cucumber.version}</version>
       <scope>test</scope>
     </dependency>
-
-
-    <!-- Cucumber -->
     <dependency>
       <groupId>io.cucumber</groupId>
       <artifactId>cucumber-java</artifactId>
@@ -59,7 +121,7 @@
       <scope>test</scope>
     </dependency>
 
-    <!-- AssertJ (opcional) -->
+    <!-- AssertJ -->
     <dependency>
       <groupId>org.assertj</groupId>
       <artifactId>assertj-core</artifactId>
@@ -70,17 +132,38 @@
 
   <build>
     <plugins>
-      <!-- Compilador (usando release 17) -->
+      <!-- Spring Boot Maven Plugin -->
+      <plugin>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-maven-plugin</artifactId>
+        <configuration>
+          <excludes>
+            <exclude>
+              <groupId>org.projectlombok</groupId>
+              <artifactId>lombok</artifactId>
+            </exclude>
+          </excludes>
+        </configuration>
+      </plugin>
+
+      <!-- Compiler -->
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-compiler-plugin</artifactId>
         <version>3.13.0</version>
         <configuration>
           <release>${maven.compiler.release}</release>
+          <annotationProcessorPaths>
+            <path>
+              <groupId>org.projectlombok</groupId>
+              <artifactId>lombok</artifactId>
+              <version>${lombok.version}</version>
+            </path>
+          </annotationProcessorPaths>
         </configuration>
       </plugin>
 
-      <!-- Executa testes (JUnit5 + Cucumber) e gera cucumber.json/html -->
+      <!-- Surefire (Testes) -->
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-surefire-plugin</artifactId>
@@ -97,7 +180,7 @@
         </configuration>
       </plugin>
 
-      <!-- Jacoco -->
+      <!-- JaCoCo -->
       <plugin>
         <groupId>org.jacoco</groupId>
         <artifactId>jacoco-maven-plugin</artifactId>
@@ -115,12 +198,53 @@
               <goal>report</goal>
             </goals>
           </execution>
+          <execution>
+            <id>check</id>
+            <goals>
+              <goal>check</goal>
+            </goals>
+            <configuration>
+              <rules>
+                <rule>
+                  <element>BUNDLE</element>
+                  <limits>
+                    <limit>
+                      <counter>LINE</counter>
+                      <value>COVEREDRATIO</value>
+                      <minimum>0.99</minimum>
+                    </limit>
+                  </limits>
+                </rule>
+              </rules>
+            </configuration>
+          </execution>
         </executions>
+      </plugin>
+
+      <!-- PMD -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-pmd-plugin</artifactId>
+        <version>${pmd.version}</version>
+        <executions>
+          <execution>
+            <phase>verify</phase>
+            <goals>
+              <goal>check</goal>
+            </goals>
+          </execution>
+        </executions>
+        <configuration>
+          <rulesets>
+            <ruleset>/rulesets/java/quickstart.xml</ruleset>
+          </rulesets>
+          <targetJdk>17</targetJdk>
+        </configuration>
       </plugin>
     </plugins>
   </build>
 
-  <!-- ===== PROFILE para gerar o relatório BDD bonito ===== -->
+  <!-- Profiles -->
   <profiles>
     <profile>
       <id>bdd-report</id>
@@ -138,11 +262,9 @@
                   <goal>generate</goal>
                 </goals>
                 <configuration>
-                  <!-- Usa o JSON gerado pelo Surefire/Cucumber -->
                   <jsonFiles>
                     <param>${project.build.directory}/cucumber/cucumber.json</param>
                   </jsonFiles>
-                  <!-- Saída do relatório -->
                   <outputDirectory>${project.build.directory}/bdd-report</outputDirectory>
                   <projectName>subscription-suite-bdd-project-ATDD</projectName>
                   <buildNumber>${project.version}</buildNumber>

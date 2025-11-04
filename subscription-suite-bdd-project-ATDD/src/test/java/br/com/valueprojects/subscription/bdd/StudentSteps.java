@@ -2,8 +2,8 @@ package br.com.valueprojects.subscription.bdd;
 
 import io.cucumber.java.pt.Dado;
 import io.cucumber.java.en.Given;
-import br.com.valueprojects.subscription.Plan;
-import br.com.valueprojects.subscription.Student;
+import br.com.valueprojects.subscription.vo.Plan;
+import br.com.valueprojects.subscription.entity.Student;
 
 /** TODOS os Givens ficam aqui para evitar duplicação. */
 public class StudentSteps {
@@ -13,10 +13,13 @@ public class StudentSteps {
     @Dado("um aluno BASIC chamado {string} com {int} cursos concluídos e {int} créditos")
     @Given("a BASIC student named {string} with {int} completed courses and {int} credits")
     public void basicStudentWithCredits(String name, int completed, int credits) {
-        ctx.student = new Student(name);
-        ctx.student.setPlan(Plan.BASIC);
-        ctx.student.setCompletedCourses(completed);
-        ctx.student.setCredits(credits);
+        ctx.student = Student.builder()
+                .name(name)
+                .plan(Plan.BASIC)
+                .completedCourses(completed)
+                .credits(credits)
+                .coins(0)
+                .build();
     }
 
     @Dado("um aluno BASIC chamado {string} com {int} cursos concluídos, {int} créditos e {int} moedas")

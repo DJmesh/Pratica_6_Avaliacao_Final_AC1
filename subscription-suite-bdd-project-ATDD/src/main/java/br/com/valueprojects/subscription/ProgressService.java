@@ -1,5 +1,12 @@
 package br.com.valueprojects.subscription;
 
+import br.com.valueprojects.subscription.entity.Student;
+import br.com.valueprojects.subscription.vo.Plan;
+
+/**
+ * Versão simplificada do ProgressService para testes BDD.
+ * Esta versão trabalha diretamente com a entidade Student sem depender de Spring.
+ */
 public class ProgressService {
 
     /**

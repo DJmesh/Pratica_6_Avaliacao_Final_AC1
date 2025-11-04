@@ -2,7 +2,8 @@ package br.com.valueprojects.subscription.bdd;
 
 import static org.junit.jupiter.api.Assertions.*;
 import io.cucumber.java.pt.Entao;
-import br.com.valueprojects.subscription.Plan;
+import br.com.valueprojects.subscription.vo.Plan;
+import br.com.valueprojects.subscription.entity.Student;
 
 public class Steps {
     private final StepContext ctx;
